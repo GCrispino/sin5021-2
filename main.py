@@ -23,7 +23,7 @@ if len(sys.argv) < 2:
 
 algorithm = int(sys.argv[1])
 
-env = gym.make('CliffWalking-v0')
+env = gym.make('CartPole-v1')
 
 gamma = 0.9
 decay = 0.9
@@ -31,19 +31,37 @@ alpha = 0.1
 epsilon = 0.1
 n_episodes = 2000
 
-E = np.zeros((env.observation_space.n, env.action_space.n))
+state_intervals = np.array([
+    env.observation_space.low,
+    env.observation_space.high
+]).T
+
+n_discrete_states = 50
+
+cart_pos_vals = np.linspace(state_intervals[0][0], state_intervals[0][1], n_discrete_states)
+cart_vel_vals = np.linspace(state_intervals[1][0], state_intervals[1][1], n_discrete_states)
+pole_angle_vals = np.linspace(state_intervals[2][0], state_intervals[2][1], n_discrete_states)
+pole_vel_vals = np.linspace(state_intervals[3][0], state_intervals[3][1], n_discrete_states)
+
+discretized_states = np.array([
+    cart_pos_vals, cart_vel_vals,
+    pole_angle_vals, pole_vel_vals
+])
+
+# E = np.zeros((env.observation_space.n, env.action_space.n))
+E = np.zeros((n_discrete_states, env.action_space.n))
 update_q_sarsa = update_q_factory_sarsa(E, env, epsilon, decay)
 
-start_state_index = env.start_state_index
+start_state_index = env.start_state_index if hasattr(env,'start_state_index') else None
 
 if algorithm == 0:
     Q, result = learn(
-        env, n_episodes, start_state_index, update_q_qlearning, 
+        env, n_episodes, start_state_index, discretized_states, update_q_qlearning, 
         epsilon, gamma, alpha, render=False
     )
 elif algorithm == 1:
     Q, result = learn(
-        env, n_episodes, start_state_index, update_q_sarsa,
+        env, n_episodes, start_state_index, discretized_states, update_q_sarsa,
         epsilon, gamma, alpha, render=False
     )
 else:
