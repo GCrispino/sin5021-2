@@ -1,14 +1,27 @@
 import numpy as np
+import math
+
+def get_epsilon(_epsilon, t):
+    return max(_epsilon, min(1, 1.0 - math.log10((t + 1) / 25)))
+
+def get_alpha(_alpha, t):
+    return max(_alpha, min(1.0, 1.0 - math.log10((t + 1) / 25)))
+
 
 def e_greedy(env, epsilon, i_s, Q):
-        if np.random.uniform() < epsilon:
-            return env.action_space.sample()
-        else:
-            return np.argmax(Q[i_s])
+    rand = np.random.random() 
+    if rand <= epsilon:
+        return env.action_space.sample()
+    else:
+        return np.argmax(Q[i_s])
 
 def get_feat_index(i, feat, discretized_states):
     discretized_feat_values = discretized_states[i]
     first, last = discretized_feat_values[0], discretized_feat_values[-1]
+    if feat < first:
+        return 0
+    if feat > last:
+        return -1
     delta = abs((first - last) / len(discretized_feat_values))
     
     feat_index = int((feat - first) / delta)
@@ -20,14 +33,12 @@ def get_index_state(state, discretized_states):
     return tuple(feat_indices)
 
 def learn(
-    env, n_episodes, start_state_index, discretized_states, update_q, 
-    epsilon, gamma, alpha, render=True
+    env, n_episodes, start_state_index, n_discrete_states, discretized_states, update_q, 
+    _epsilon, gamma, _alpha, render=True
 ):
     
-    n_feats, n_discrete = discretized_states.shape[0], discretized_states.shape[1]
     nA = env.action_space.n
-    Q = np.zeros((n_discrete,) * n_feats + (nA,))
-    state = start_state_index
+    Q = np.zeros(n_discrete_states + (env.action_space.n,))
 
     episode_count = np.zeros(n_episodes)
     acc_rewards = np.zeros(n_episodes)
@@ -37,15 +48,27 @@ def learn(
         state = env.reset()
         i_state = get_index_state(state, discretized_states)
         acc_reward = 0
+        epsilon = get_epsilon(_epsilon, e)
+        print('epsilon: ',epsilon)
+        alpha = get_alpha(_alpha, e)
+        print('alpha: ',alpha)
         while True:
             if render:
                 env.render()
 
-            print('current state: ', state)
             action = e_greedy(env, epsilon, i_state, Q)
+            # print('current_state: ', i_state)
+            # print('action: ', action)
 
-            next_state, reward, done, info = env.step(action)
+            next_state, reward, done, _ = env.step(action)
+            i_next_state = get_index_state(next_state, discretized_states)
             acc_reward += reward
+            update_q(Q, i_state, action, reward, i_next_state, gamma, alpha)
+
+            state = next_state
+            i_state = get_index_state(state, discretized_states)
+
+            t += 1
 
             if render:
                 print("t = ", t)
@@ -56,19 +79,12 @@ def learn(
                acc_rewards[e] = acc_reward
                break
 
-            print('current state: ', state)
-            print('next state: ', next_state)
-            update_q(Q, state, action, reward, next_state, gamma, alpha)
-
-            state = next_state
-
-            t += 1
-
+            
     env.close()
 
     result = {
         'acc_rewards': acc_rewards,
-        'episode_count': episode_count
+        'episode_count': episode_count,
     }
 
     return Q, result
