@@ -1,11 +1,12 @@
 import numpy as np
 import math
 
-def get_epsilon(_epsilon, t):
-    return max(_epsilon, min(1, 1.0 - math.log10((t + 1) / 25)))
+# the lower the decay limit, the higher is the speed of decayment
+def get_epsilon(_epsilon, t, log_decay_limit=10):
+    return max(_epsilon, min(1.0, 1.0 - math.log10((t + 1) / log_decay_limit)))
 
-def get_alpha(_alpha, t):
-    return max(_alpha, min(1.0, 1.0 - math.log10((t + 1) / 25)))
+def get_alpha(_alpha, t, log_decay_limit=10):
+    return max(_alpha, min(1.0, 1.0 - math.log10((t + 1) / log_decay_limit)))
 
 
 def e_greedy(env, epsilon, i_s, Q):
@@ -24,7 +25,7 @@ def get_feat_index(i, feat, discretized_states):
         return -1
     delta = abs((first - last) / len(discretized_feat_values))
     
-    feat_index = int((feat - first) / delta)
+    feat_index = int((feat - first) / delta) - 1
     return feat_index
 
 def get_index_state(state, discretized_states):
@@ -33,7 +34,7 @@ def get_index_state(state, discretized_states):
     return tuple(feat_indices)
 
 def learn(
-    env, n_episodes, start_state_index, n_discrete_states, discretized_states, update_q, 
+    env, n_episodes, n_discrete_states, discretized_states, update_q, 
     _epsilon, gamma, _alpha, render=True
 ):
     
