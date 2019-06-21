@@ -29,6 +29,7 @@ env = gym.make('CartPole-v1')
 # TODO:
 #       Implementar renderização de política aprendida
 #       Implementar sarsa (se tiver saco)
+gamma = 0.99
 decay = 0.9
 alpha = 0.1
 epsilon = 0.01
