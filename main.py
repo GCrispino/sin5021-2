@@ -27,6 +27,7 @@ if len(sys.argv) < 2:
     sys.exit("USAGE: python main.py <algorithm={0,1,2}>")
 
 algorithm = int(sys.argv[1])
+n_executions = int(sys.argv[2]) if len(sys.argv) > 2 else 1
 
 #device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 device = "cpu"
