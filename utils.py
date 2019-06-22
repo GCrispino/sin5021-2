@@ -1,5 +1,6 @@
 import numpy as np
 import math
+from collections import deque
 
 # the lower the decay limit, the higher is the speed of decayment
 def get_epsilon(_epsilon, t, log_decay_limit=10):
@@ -43,6 +44,7 @@ def learn(
 
     episode_count = np.zeros(n_episodes)
     acc_rewards = np.zeros(n_episodes)
+    last_100_rewards = deque(maxlen=100)
 
     for e in range(n_episodes):
         t = 0
@@ -50,9 +52,8 @@ def learn(
         i_state = get_index_state(state, discretized_states)
         acc_reward = 0
         epsilon = get_epsilon(_epsilon, e)
-        print('epsilon: ',epsilon)
         alpha = get_alpha(_alpha, e)
-        print('alpha: ',alpha)
+        rewards = []
         while True:
             if render:
                 env.render()
@@ -64,22 +65,28 @@ def learn(
             next_state, reward, done, _ = env.step(action)
             i_next_state = get_index_state(next_state, discretized_states)
             acc_reward += reward
+            rewards.append(reward)
             update_q(Q, i_state, action, reward, i_next_state, gamma, alpha)
 
             state = next_state
             i_state = get_index_state(state, discretized_states)
 
-            t += 1
 
             if render:
                 print("t = ", t)
                 print(action, next_state, reward)
             if done:
-               print("Episode %d finished after %d timesteps" % (e, t + 1))
+               # print("Episode %d finished after %d timesteps" % (e, t + 1))
+               # print("\t Acc reward: %d" % np.sum(rewards))
                episode_count[e] = t + 1
                acc_rewards[e] = acc_reward
+               last_100_rewards.append(np.sum(rewards))
                break
 
+            t += 1
+
+        if (e + 1) % 100 == 0:
+            print('Episode {}\tAverage Score: {:.2f}'.format(e + 1, np.mean(last_100_rewards))) 
             
     env.close()
 
@@ -89,5 +96,3 @@ def learn(
     }
 
     return Q, result
-
-

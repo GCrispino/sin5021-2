@@ -2,10 +2,14 @@ import sys
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import torch
 import gym
 from qlearning import update_q as update_q_qlearning
 from sarsa import update_q_factory as update_q_factory_sarsa
 from utils import learn 
+from reinforce import Policy, learn_reinforce
+
+torch.manual_seed(0) 
 
 def get_values(Q):
     new_Q = np.array([ np.max(Q[s]) for s in range(Q.shape[0])])
@@ -20,20 +24,23 @@ def get_policy(Q):
 
 
 if len(sys.argv) < 2:
-    sys.exit("USAGE: python main.py <algorithm={0,1}>")
+    sys.exit("USAGE: python main.py <algorithm={0,1,2}>")
 
 algorithm = int(sys.argv[1])
 
+#device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+device = "cpu"
 env = gym.make('CartPole-v1')
+env.seed(0)
 
 # TODO:
 #       Implementar renderização de política aprendida
 #       Implementar sarsa (se tiver saco)
-gamma = 0.99
+gamma = 1
 decay = 0.9
-alpha = 0.1
+alpha = 1e-3
 epsilon = 0.01
-n_episodes = 1000
+n_episodes = 2000
 
 state_intervals = np.array([
     env.observation_space.low,
@@ -54,7 +61,7 @@ discretized_states = np.array([
 
 E = np.zeros(n_discrete_states + (env.action_space.n,))
 update_q_sarsa = update_q_factory_sarsa(E, env, epsilon, decay)
-
+Q = np.array([])
 
 if algorithm == 0:
     Q, result = learn(
@@ -66,15 +73,25 @@ elif algorithm == 1:
         env, n_episodes, discretized_states, update_q_sarsa,
         epsilon, gamma, alpha, render=False
     )
+elif algorithm == 2:
+    p = Policy(state_size = 4, action_size = 2)
+    p.to(device)
+
+    result = learn_reinforce(
+        env, device, n_episodes, p,
+        gamma, alpha, render=False
+    )
 else:
     sys.exit("Invalid algorithm option!")
 
-#print(get_policy(Q))
-#print(get_values(Q))
-print(Q, Q.shape)
+if Q.size > 0:
+    print(Q, Q.shape)
 
 acc_rewards = result['acc_rewards']
 episode_count = result['episode_count']
-plt.plot(acc_rewards)
-plt.plot(episode_count)
+
+if acc_rewards.size > 0:
+    plt.plot(acc_rewards)
+if episode_count.size > 0:
+    plt.plot(episode_count)
 plt.show()
