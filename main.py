@@ -11,6 +11,7 @@ from sarsa import update_q_factory as update_q_factory_sarsa
 from utils import learn 
 from reinforce import Policy, learn_reinforce
 
+np.random.seed(0)
 torch.manual_seed(0) 
 
 def get_values(Q):
@@ -34,6 +35,7 @@ n_executions = int(sys.argv[2]) if len(sys.argv) > 2 else 1
 #device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 device = "cpu"
 env = gym.make('CartPole-v1')
+env.action_space.seed(0)
 env.seed(0)
 
 # TODO:
