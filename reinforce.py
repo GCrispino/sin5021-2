@@ -69,8 +69,8 @@ def learn_reinforce(env, device, n_episodes, p, gamma, alpha, render=True):
     env.close()
 
     result = {
-        'acc_rewards': acc_rewards,
-        'episode_count': np.array([])
+        'acc_rewards': acc_rewards.tolist(),
+        'episode_count': acc_rewards.tolist()
     }
     return result
 

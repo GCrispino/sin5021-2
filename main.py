@@ -1,4 +1,6 @@
 import sys
+import json
+import datetime
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -60,39 +62,53 @@ discretized_states = np.array([
     pole_angle_vals, pole_vel_vals
 ])
 
-E = np.zeros(n_discrete_states + (env.action_space.n,))
-update_q_sarsa = update_q_factory_sarsa(E, env, epsilon, decay)
-Q = np.array([])
 
-if algorithm == 0:
-    Q, result = learn(
-        env, n_episodes, n_discrete_states, discretized_states, update_q_qlearning, 
-        epsilon, gamma, alpha, render=False
-    )
-elif algorithm == 1:
-    Q, result = learn(
-        env, n_episodes, discretized_states, update_q_sarsa,
-        epsilon, gamma, alpha, render=False
-    )
-elif algorithm == 2:
-    p = Policy(state_size = 4, action_size = 2)
-    p.to(device)
+results = [None] * n_executions
 
-    result = learn_reinforce(
-        env, device, n_episodes, p,
-        gamma, alpha, render=False
-    )
-else:
-    sys.exit("Invalid algorithm option!")
+for i in range(n_executions):
+    print('-> %dith execution: ' % i)
+    E = np.zeros(n_discrete_states + (env.action_space.n,))
+    Q = np.array([])
+    update_q_sarsa = update_q_factory_sarsa(E, env, epsilon, decay)
 
-if Q.size > 0:
-    print(Q, Q.shape)
+    if algorithm == 0:
+        Q, result = learn(
+            env, n_episodes, n_discrete_states, discretized_states, update_q_qlearning, 
+            epsilon, gamma, alpha, render=False
+        )
+    elif algorithm == 1:
+        Q, result = learn(
+            env, n_episodes, discretized_states, update_q_sarsa,
+            epsilon, gamma, alpha, render=False
+        )
+    elif algorithm == 2:
+        p = Policy(state_size = 4, action_size = 2)
+        p.to(device)
 
-acc_rewards = result['acc_rewards']
-episode_count = result['episode_count']
+        result = learn_reinforce(
+            env, device, n_episodes, p,
+            gamma, alpha, render=False
+        )
+    else:
+        sys.exit("Invalid algorithm option!")
+    results[i] = result
 
-if acc_rewards.size > 0:
-    plt.plot(acc_rewards)
-if episode_count.size > 0:
-    plt.plot(episode_count)
-plt.show()
+results_obj = {
+    'alg': algorithm,
+    'gamma': gamma,
+    'alpha': alpha,
+    'epsilon': epsilon,
+    'results': results,
+    'decay': decay,
+    'n_episodes': n_episodes,
+}
+
+#if acc_rewards.size > 0:
+#    plt.plot(acc_rewards)
+#if episode_count.size > 0:
+#    plt.plot(episode_count)
+#plt.show()
+timestamp = datetime.datetime.now().timestamp()
+filename = './results/result-%s-%s.json' % (algorithm, str(timestamp))
+with open(filename, 'w') as fp:
+    json.dump(results_obj, fp, indent=2)

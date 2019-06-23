@@ -91,8 +91,8 @@ def learn(
     env.close()
 
     result = {
-        'acc_rewards': acc_rewards,
-        'episode_count': episode_count,
+        'acc_rewards': acc_rewards.tolist(),
+        'episode_count': episode_count.tolist(),
     }
 
     return Q, result
