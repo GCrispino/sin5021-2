@@ -5,18 +5,25 @@ from torch.distributions import Categorical
 import numpy as np
 import gym
 from collections import deque
+import sys
 
 class Policy(nn.Module):
-    def __init__(self, state_size, action_size, hidden_size=15):
+    def __init__(self, state_size, action_size, n_hidden=1, hidden_size=15):
         super(Policy, self).__init__()
         self.l_input = nn.Linear(state_size, hidden_size)
-        self.l_hidden = nn.Linear(hidden_size, action_size)
+        self.l_hidden = [
+            nn.Linear(hidden_size, action_size) if i == n_hidden - 1
+            else nn.Linear(hidden_size, hidden_size)
+            for i in range(n_hidden)
+        ]
 
     def forward(self, x):
         o_l_input = F.relu(self.l_input(x)) 
-        o_l_hidden = self.l_hidden(o_l_input)
-
-        return F.softmax(o_l_hidden, dim=0)
+        new_x = o_l_input
+        for l_h in self.l_hidden:
+            new_x = l_h(new_x)
+        
+        return F.softmax(new_x, dim=0)
 
 def learn_reinforce(env, device, n_episodes, p, gamma, alpha, render=True):
     optimizer = torch.optim.Adam(p.parameters(), lr=alpha)
@@ -52,7 +59,7 @@ def learn_reinforce(env, device, n_episodes, p, gamma, alpha, render=True):
         acc_rewards[e] = (np.sum(rewards))
         if (e + 1) % 100 == 0:
             print('Episode {}\tAverage Score: {:.2f}'.format(e + 1, np.mean(last_100_rewards))) 
-        #print('Episode %d ended after %d timesteps.' % (e, t))
+        # print('Episode %d ended after %d timesteps.' % (e, t))
         #print('\tRewards sum: %d. ' % acc_rewards[e]) 
 
         # update policy
@@ -63,6 +70,7 @@ def learn_reinforce(env, device, n_episodes, p, gamma, alpha, render=True):
                 for k in range(t, len(log_probs))
             ])
             loss = -log_prob * G
+            # print(-log_prob, G, loss)
             loss.backward()
             optimizer.step()
 
